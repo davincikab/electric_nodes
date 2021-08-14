@@ -1,0 +1,97 @@
+{
+    "type":"FeatureCollection",
+    "features":[
+        { 
+            "type":"Feature",
+            "geometry":{
+                "type":"Point",
+                "coordinates":[0.7075, 51.5415]
+            },
+            "properties":{
+                "label":"GMA 1",
+                "Post Pull Tests":"",
+                "Stripping/Hangoffs":"completed",
+                "Routing & Cleating":"completed",
+                "Termination (MV & Fibre)":"completed",
+                "SAT B":"completed",
+                "Walkdowns":"completed",
+                "AREI":"",
+                "SAT C":"completed"
+            }
+        },
+        { 
+            "type":"Feature",
+            "geometry":{
+                "type":"Point",
+                "coordinates":[0.7301, 51.5401]
+            },
+            "properties":{
+                "label":"GMA 2",
+                "Post Pull Tests":"completed",
+                "Stripping/Hangoffs":"completed",
+                "Routing & Cleating":"",
+                "Termination (MV & Fibre)":"completed",
+                "SAT B":"",
+                "Walkdowns":"completed",
+                "AREI":"",
+                "SAT C":"completed"
+            }
+        },
+
+        { 
+            "type":"Feature",
+            "geometry":{
+                "type":"Point",
+                "coordinates":[0.7131, 51.5487]
+            },
+            "properties":{
+                "label":"GMA 3",
+                "Post Pull Tests":"",
+                "Stripping/Hangoffs":"completed",
+                "Routing & Cleating":"completed",
+                "Termination (MV & Fibre)":"completed",
+                "SAT B":"",
+                "Walkdowns":"completed",
+                "AREI":"completed",
+                "SAT C":"completed"
+            }
+        },
+        { 
+            "type":"Feature",
+            "geometry":{
+                "type":"Point",
+                "coordinates":[0.7281, 51.5485]
+            },
+            "properties":{
+                "label":"GMA 4",
+                "Post Pull Tests":"",
+                "Stripping/Hangoffs":"",
+                "Routing & Cleating":"",
+                "Termination (MV & Fibre)":"",
+                "SAT B":"",
+                "Walkdowns":"",
+                "AREI":"",
+                "SAT C":""
+            }
+        },
+        { 
+            "type":"Feature",
+            "geometry":{
+                "type":"Point",
+                "coordinates":[0.7205, 51.5540]
+            },
+            "properties":{
+                "label":"GMA 5",
+                "Post Pull Tests":"completed",
+                "Stripping/Hangoffs":"",
+                "Routing & Cleating":"",
+                "Termination (MV & Fibre)":"",
+                "SAT B":"",
+                "Walkdowns":"",
+                "AREI":"",
+                "SAT C":""
+            }
+        }
+
+    ]
+}
