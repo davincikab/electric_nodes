@@ -6,11 +6,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Electric Nodes Location</title>
     <link href="https://api.mapbox.com/mapbox-gl-js/v2.4.0/mapbox-gl.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" integrity="sha512-1ycn6IcaQQ40/MKBW2W4Rhis/DbILU74C1vSrLJxCq57o941Ym01SwNsOMqvEBFlcgUa6xLiPY/NS5R+E6ztJQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <link rel="stylesheet" href="map.css">
 </head>
 <body>
-   
+    <div class="spinner-container">
+        <div class="page-loader page-loader-logo" id="loading">
+            <span style="margin:0.5rem 0;"><i class="fa fa-map fa-2x"></i></span>
+            <div class="spinner spinner-primary my-2"></div>
+            <p>Loading Data ...</p>
+        </div>
+    </div>
+
     <div class="map-container">
         <div class="map" id="map"></div>
 
@@ -19,22 +26,37 @@
                 <span>
                     <i class="fa fa-layer-group" data-id="layer-div" ></i>
                 </span>
+                 <span class="tooltip-text">Map Layers</span>
             </div>
             <div class="tab-item" data-id="filter-div">
                 <span>
                     <i class="fa fa-filter" data-id="filter-div"></i>
                 </span>
+                 <span class="tooltip-text">Filter Data</span>
+            </div>
+
+            <div class="tab-item" data-id="visual-div">
+                <span>
+                    <i class="fa fa-chart-area" data-id="visual-div"></i>
+                </span>
+                 <span class="tooltip-text">Visualize By</span>
             </div>
 
             <div class="tab-item" data-id="refresh-map">
                 <span>
-                    <i class="fa fa-refresh"></i>
+                    <i class="fa fa-sync" data-id="refresh-map"></i>
                 </span>
+                 <span class="tooltip-text">Refresh Map</span>
             </div>
+
         </div>
 
         <div class="overlay-section d-none" id="layer-div">
             <h2>Layers</h2>
+
+            <div class="close-btn" data-id="layer-div">
+                <i class="fa fa-times" data-id="layer-div"></i>
+            </div>
             <div class="toggle" id="layers">
                 <div>
                     <input type="checkbox" name="locations" id="location-layer" checked>
@@ -50,6 +72,10 @@
 
         <div class="overlay-section d-none" id="filter-div">
             <h2>Filter</h2>
+
+            <div class="close-btn" data-id="filter-div">
+                <i class="fa fa-times" data-id="filter-div"></i>
+            </div>
 
             <div class="filter-list">
                 <div>
@@ -83,20 +109,90 @@
             </div>
         </div>
 
+        <div class="overlay-section d-none" id="visual-div">
+            <h2>Visual</h2>
 
-        <div class="info-window" id="info-window">
+            <div class="close-btn" data-id="visual-div">
+                <i class="fa fa-times" data-id="visual-div"></i>
+            </div>
+
+            <div class="toggle" id="layers">
+                <div>
+                    <input type="radio" name="visual" class="visual-type" data-visual="default" checked>
+                    <label for="Cables">Default</label>
+                </div>
+
+                <div>
+                    <input type="radio" name="visual" class="visual-type" data-visual="progress">
+                    <label for="Cables">Progress</label>
+                </div>
+
+                <div>
+                    <input type="radio" name="visual" class="visual-type" data-visual="test">
+                    <label for="Cables">Tests</label>
+                </div>
+            </div>
+        </div>
+
+        <div class="mini-dashboard">
+            <p>Dashboard</p>
+
+            <div class="count-section">
+                <div class="entry">
+                    <h2 id="location-count">20</h2>
+                    <span>Locations</span>
+                </div>
+                <div class="entry">
+                    <h2 id="cable-count">10</h2>
+                    <span>Cables</span>
+                </div>
+            </div>
+
+            <div class="chart-section">
+                <p>Progress Chart</p>   
+
+                <div class="toggle-selection">
+                    <div class="chart-toggler active" data-layer="location">Location</div>
+                    <div class="chart-toggler " data-layer="cable">Cables</div>
+                </div>
+
+                <div class="chart-container" id="chart-container">
+                    <svg class="chart" width="200px" height="120px">
+                        <g class="left" transform="translate(60, 0)"></g>
+                        <g class="bottom" transform="translate(60, 80)"></g>
+                    </svg>
+                </div>
+            </div>
+
+            <div class="legend-container">
+                <p>Progress Legend</p>
+                <div id="legend-container">
+
+                </div>
+            </div>
+        </div>
+
+        <div class="info-window d-none" id="info-window">
             <div class="info-header">
                 <h2>Site A34</h2>
+
+                <div class="close-btn close-sidebar" data-id="info-window">
+                    <i class="fa fa-times" data-id="info-window"></i>
+                </div>
             </div>
 
             <div class="info-body">
                 <!-- cable/site info -->
                 <div class="general-info">
                     <div class="media">
-                        <figure>
+                        <!-- <figure>
                             <img src="https://picsum.photos/200/300" alt="Trulli" style="width:100%; height:200px">
                             <figcaption>Fig.1 - Trulli, Puglia, Italy.</figcaption>
-                        </figure>
+                        </figure> -->
+                    </div>
+
+                    <div class="info-item">
+                        Site <b></b>
                     </div>
                 </div>
 
@@ -122,6 +218,7 @@
     <script src="d3.v6.js"></script>
     <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
     <script src="cables.js"></script>
+    <script src="d3.v6.js"></script>
     <script src="main.js"></script>
 </body>
 </html>

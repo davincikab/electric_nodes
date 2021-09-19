@@ -7,6 +7,9 @@ var cablesDataset;
 
 var locationMarkers = [];
 var infoWindow = document.getElementById('info-window');
+var progressColors = ['#66c2a5','#fc8d62','#8da0cb','#e78ac3'];
+var progressStatus = ['Incomplete','In Progress','Pending','Complete'];
+var spinner = document.getElementById("loading");
 
 // access token
 mapboxgl.accessToken = 'pk.eyJ1IjoiZGF1ZGk5NyIsImEiOiJjanJtY3B1bjYwZ3F2NGFvOXZ1a29iMmp6In0.9ZdvuGInodgDk7cv-KlujA';
@@ -15,8 +18,8 @@ mapboxgl.accessToken = 'pk.eyJ1IjoiZGF1ZGk5NyIsImEiOiJjanJtY3B1bjYwZ3F2NGFvOXZ1a
 var map = new mapboxgl.Map({
     container: 'map',
     style: 'mapbox://styles/mapbox/outdoors-v11',
-    center: [1.63272307059878, 53.8414629495329],
-    zoom: 10.5
+    center: [1.5773458126799937, 53.88578000911349],
+    zoom: 11.054858191088872
 });
 
 map.on('load', function() {
@@ -24,27 +27,7 @@ map.on('load', function() {
     map.loadImage('pylon.png', function(error , image) {
         if(error) throw error;
 
-        map.addImage('pylon', image);
-    });
-
-    // cables
-    map.addSource('locations', {
-        type:'geojson',
-        data:{"type":"FeatureCollection", "features":[]}
-    });
-
-    map.addLayer({
-        id:'location-layer',
-        source:'locations',
-        type:'symbol',
-        paint:{
-            'icon-color':'red',
-        },
-        layout:{
-            visibility:'visible',
-            'icon-image':'pylon',
-            'icon-size':0.5
-        }
+        map.addImage('pylon', image, {sdf:true});
     });
 
     // cables
@@ -63,6 +46,26 @@ map.on('load', function() {
         },
         layout:{
             visibility:'visible'
+        }
+    });
+
+    // sites
+    map.addSource('locations', {
+        type:'geojson',
+        data:{"type":"FeatureCollection", "features":[]}
+    });
+
+    map.addLayer({
+        id:'location-layer',
+        source:'locations',
+        type:'symbol',
+        paint:{
+            'icon-color':'#333',
+        },
+        layout:{
+            visibility:'visible',
+            'icon-image':'pylon',
+            'icon-size':0.5
         }
     });
 
@@ -105,6 +108,12 @@ map.on('load', function() {
         // 
         console.log("Updating cable layer");
 
+        // Initial chart
+        createProgressChart(getChartValues('Location'), 'Cables');
+        updateCounts();
+
+        // close the spinner
+        spinner.classList.add('d-none');
     })
     .catch(error => {
         console.error(error);
@@ -126,6 +135,8 @@ map.on('load', function() {
             props.Field = props['Cable_Field_Link'];
             props['Location_Progress_Status'] = props['Cable_Progress_Status'];
 
+            props.photos = "[]";
+
             let popup = createPopup(props);
 
             popup
@@ -133,7 +144,7 @@ map.on('load', function() {
                 .addTo(map);
 
             // open side panel with more info
-            populateSidePanelInfo(feature, "Cable");
+            populateSidePanelInfo({...feature, properties:props}, "Cable");
         }
     });
 
@@ -214,7 +225,7 @@ function createPopup(location) {
 }
 
 function populateSidePanelInfo(feature, layer="Site") {
-    // console.log(feature);
+    console.log(feature);
 
     infoWindow.innerHTML = "";
 
@@ -225,6 +236,8 @@ function populateSidePanelInfo(feature, layer="Site") {
         </figure>`
     });
 
+    let featureInfo = layer == 'Site' ? getLocationInfo(feature) :getCableInfo(feature);
+
     let html = `<div class="info-header">
         <h2>${layer} ${feature.properties['Name']}</h2>
     </div>
@@ -234,11 +247,73 @@ function populateSidePanelInfo(feature, layer="Site") {
                 ${media.join("")}
             </div>
         </div>
+        ${featureInfo}
     </div>`;
 
+    console.log(feature);
+    console.log(layer);
 
     infoWindow.innerHTML = html;
+    infoWindow.classList.remove('d-none');
 }
+
+function getCableInfo(feature) {
+    return `<div class="info-item">
+            Progress <b>${feature.properties['Cable_Progress_Status']}</b>
+        </div>
+
+        <div class="info-item">
+            Site <b>${feature.properties['Cable_Site_Link']}</b>
+        </div>
+
+        <div class="info-item">
+            Field <b>${feature.properties['Cable_Field_Link']}</b>
+        </div>
+
+        <div class="info-item">
+            Cable String Link<b>${feature.properties['Cable_String_Link']}</b>
+        </div>
+        <div class="tests-section">
+                    <!--  -->
+            <h3>Cable Test</h3>
+            <div class="test-item">
+
+            </div>
+        </div>
+    `;
+}
+
+function getLocationInfo(feature) {
+    return `<div class="info-item">
+    Progress <b>${feature.properties['Location_Progress_Status']}</b>
+    </div>
+
+    <div class="info-item">
+        Site <b>${feature.properties['Site']}</b>
+    </div>
+
+    <div class="info-item">
+        Field <b>${feature.properties['Field']}</b>
+    </div>
+
+    <div class="info-item">
+        Primary Sub Station <b>${feature.properties['Primary_Sub_Station']}</b>
+    </div>
+
+    <div class="info-item">
+        Location Count On Strings <b>${feature.properties['Location_Count_On_String']}</b>
+    </div>
+
+    <div class="tests-section">
+        <!--  -->
+        <h3>Site Test</h3>
+        <div class="test-item">
+
+        </div>
+    </div>
+    `
+}
+
 // Module to process to enrich the tables
 // create the cables
 
@@ -465,10 +540,12 @@ tabButtons.forEach(tabButton => {
 
 
 // filter module
-var filterRadioBtns = document.querySelectorAll(".progess-filter");
+var filterRadioBtns = document.querySelectorAll(".progress-filter");
 filterRadioBtns.forEach(btn => {
     btn.onclick = function(e) {
         let { progress } = e.target.dataset;
+
+        console.log("Site Progress: ", progress);
 
         if(progress == 'All') {
             // display all the data
@@ -482,7 +559,7 @@ filterRadioBtns.forEach(btn => {
             });
 
             let cables = cablesDataset.features.filter(location => {
-                return location.properties['Location_Progress_Status'] == progress ? location : false; 
+                return location.properties['Cable_Progress_Status'] == progress ? location : false; 
             });
 
 
@@ -492,3 +569,219 @@ filterRadioBtns.forEach(btn => {
         }
     }
 });
+
+// close sidebar
+
+// close overlay section
+var closeButtons = document.querySelectorAll(".close-btn");
+closeButtons.forEach(button => {
+    button.onclick = function(e) {
+        let { id } = e.target.dataset;
+
+        let parentElement = document.getElementById(id);
+        parentElement.classList.add('d-none');
+    }
+});
+
+
+// different visual types
+var changeVisuals = document.querySelectorAll(".visual-type");
+changeVisuals.forEach(visualType => {
+    visualType.onclick = function(e) {
+        let { checked, dataset :{ visual } } = e.target;
+
+        if(checked && visual == 'default') {
+            resetVisual();
+            return;
+        }
+
+        if(checked && visual == 'progress') {
+            visualizeByProgress();
+            return;
+        }
+
+        if(checked && visual == 'test') {
+            visualizeByTest();
+            return;
+        }
+    }
+});
+
+
+function visualizeByProgress() {
+    // locations
+    map.setPaintProperty('location-layer', 'icon-color', [
+        'match', 
+        ['get', 'Location_Progress_Status'],
+        'Incomplete',
+        progressColors[0],
+        'In Progress',
+        progressColors[1],
+        'Pending',
+        progressColors[2],
+        'Complete',
+        progressColors[3],
+        '#333'
+    ]);
+
+    // cables
+    map.setPaintProperty('cable-layer', 'line-color', [
+        'match',
+        ['get', 'Cable_Progress_Status'],
+        'Incomplete',
+        progressColors[0],
+        'In Progress',
+        progressColors[1],
+        'Pending',
+        progressColors[2],
+        'Complete',
+        progressColors[3],
+        '#333'
+    ]);
+}
+
+function visualizeByTest() {
+    // locations
+}
+
+function resetVisual() {
+    console.log("Resetting Visual");
+
+    map.setPaintProperty('cable-layer', 'line-color', ['get', 'Color']);
+    map.setPaintProperty('location-layer', 'icon-color', '#333');
+}
+
+
+// chart section
+var chartContainer = document.getElementById('chart-container');
+function createProgressChart(values, title) {
+    console.log(values);
+
+    let nVal = values.map(vl => vl.value);
+    let status = values.map(vl => vl.name);
+
+    var svg = d3.select('svg.chart');
+    var x = d3.scaleBand()
+        .domain(status)
+        .range([0, 80])
+        .paddingInner(0.15)
+
+    // var yScale = d3.scaleLinear()
+    //     .domain([0, 60])
+    //     .range([0, 80]);
+
+    var axisScale = d3.scaleLinear()
+        .domain([0, 80])
+        .range([0, 120]);
+
+    var rectGroup = svg.append('g').attr('class', 'rects').attr('transform', 'translate(20, 0)');
+
+    // rect
+    rectGroup.selectAll('rect')
+        .data(values)
+        .join('rect')
+        .attr('width', (d) => d.value)
+        .attr('height', 15)
+        .attr('x', (d,i) => 40)
+        .attr('y', (d, i) => 20 * i)
+        .attr('fill', (d, i) => progressColors[i])
+        .on('mouseover', (e) => {
+            console.log(e);
+
+            // popup showing the count and the 
+        }).on('mouseover', (e) => {
+            console.log(e);
+
+            // clear the popup 
+        });
+
+    // axis
+    let axisBottom = d3.axisBottom(axisScale).tickValues([0, 20, 40, 60, 80]);
+
+    let axisLeft = d3.axisLeft(x)
+        
+
+    // axis groups
+    d3.select('g.left').call(axisLeft);
+
+
+  
+    d3.select('g.bottom').call(axisBottom);
+}
+
+// toggle different charts
+var chartTogglers = document.querySelectorAll(".chart-toggler");
+var activeChartToggler = document.querySelector(".chart-toggler.active");
+chartTogglers.forEach(toggler => {
+    toggler.onclick = function(e) {
+        let { layer } = e.target.dataset;
+
+        activeChartToggler.classList.remove('active');
+
+        if(layer == "location") {
+            activeChartToggler = toggler;
+            activeChartToggler.classList.add('active');
+
+            let chartValues = getChartValues('Location');
+            createProgressChart(chartValues, "Location");
+        } else {
+            activeChartToggler = toggler;
+            activeChartToggler.classList.add('active');
+
+            let chartValues = getChartValues('Cable');
+            createProgressChart(chartValues, "Cables");
+        }
+    }
+});
+
+function getChartValues(chart) {
+    let values = [];
+
+    function getValues(data) {
+        console.log(data);
+
+        progressStatus.forEach(status => {
+            let count = data.features.filter(feature => feature.properties[`${chart}_Progress_Status`] == status).length;
+
+            values.push({
+                name:status,
+                value:count
+            })
+        });
+    }
+
+    if(chart == 'Location') {
+       getValues(locationsData)
+
+        
+    } else if( chart == 'Cable') {
+       getValues(cablesData);
+    }
+
+    return values;
+}
+
+// Counts
+function updateCounts() {
+    let cableCount = document.getElementById('cable-count');
+    let locationCount = document.getElementById('location-count')
+
+    cableCount.innerHTML = cablesData.features.length;
+    locationCount.innerHTML = locationsData.features.length;
+}
+
+// Progress Legend container
+var legendContainer = document.getElementById('legend-container');
+function updateLegend(colors) {
+    let html = "";
+    colors.forEach((color, index) => {
+        html += `<div class="legend-item"><div style="background-color:${color}"></div> <span>${progressStatus[index]}</span></div>`;
+    });
+
+    legendContainer.innerHTML = html;
+}
+
+
+updateLegend(progressColors);
+
+
