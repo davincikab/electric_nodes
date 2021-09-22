@@ -105,6 +105,31 @@
                         <label for="">In Progress</label>
                     </div>
 
+                    <div>
+                        <label for="">Progress Filter</label>
+                        <select name="progress-filter" id="progress-filter" class="progress-filter">
+                            <option value="All" data-progress="All" >All</option>
+                            <option value="Complete" data-progress="Complete" >Complete</option>
+                            <option value="Incomplete" data-progress="Incomplete" >Incomplete</option>
+                            <option value="In Progress" data-progress="In Progress" >In Progress</option>
+                        </select>
+                    </div>
+
+                    <div>                        
+                        <label for="">Installation Phases</label>
+                        <select name="installation_phases" id="installation_phases">
+                            <option value="TP_WTG_TP_As_Found_Document">As-Found Inspection </option>
+                            <option value="TP_Hang_Off_Installation">Hang Off Installation </option>
+                            <option value="TP_FO_Termination_Activities">FO Termination Activities </option>
+                            <option value="TP_Termination_ActivitiesL1">Termination Activities - L1 </option>
+                            <option value="TP_Termination_ActivitiesL2">Termination Activities - L2 </option>
+                            <option value="TP_Termination_ActivitiesL3">Termination Activities - L3 </option>
+                            <option value="TP_Completion_Check_Report">Completion Check Report </option>
+                        </select>
+
+                        <!-- <input type="radio" name="Progress" data-progress="Required Images" class="progress-filter"> -->
+                    </div>
+
                 </div>
             </div>
         </div>
@@ -131,10 +156,21 @@
                     <input type="radio" name="visual" class="visual-type" data-visual="test">
                     <label for="Cables">Tests</label>
                 </div>
+
+                <div>
+                    <input type="radio" name="visual" class="visual-type" data-visual="installation-phases">
+                    <label for="Cables">Installation Phases</label>
+                </div>
+
+                <div>
+                    <input type="radio" name="visual" class="visual-type" data-visual="required-images">
+                    <label for="Cables">Required Images</label>
+                </div>
+
             </div>
         </div>
 
-        <div class="mini-dashboard">
+        <div class="mini-dashboard d-none">
             <p>Dashboard</p>
 
             <div class="count-section">

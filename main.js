@@ -69,6 +69,34 @@ map.on('load', function() {
         }
     });
 
+    map.addLayer({
+        id:'location-required-images',
+        source:'locations',
+        type:"circle",
+        paint:{
+            'circle-radius':15,
+            'circle-color':'white'
+        },
+        layout:{
+            'visibility':'none'
+        }
+    });
+
+    map.addLayer({
+        id:'location-required-images_label',
+        source:'locations',
+        type:"symbol",
+        paint:{
+            'text-color':'black'
+        },
+        layout: {
+            'text-field': ["get", "images_status"],
+            'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold'],
+            'text-size': 12,
+            'visibility':'none'
+        }
+    });
+
     // read the excel file
     fetch(excelUrl, {
         // mode:'no-cors'
@@ -92,7 +120,13 @@ map.on('load', function() {
         // update location information
         sheets['Location'] = extractLatLng(sheets['Location']);
         sheets['Location'] = addLocationTestInfo(sheets['Location'],  sheets['Tests']);
+        sheets['Location'] = addLocationRequiredImagesInfo(sheets['Location'], sheets['Required_Images']);
         sheets['Location'] = addLocationPhotos(sheets['Location'], sheets['Photo']);
+
+        sheets['Location'] = addInstallationPhaseInfo(sheets['Location'], sheets['Installation_Phases'], sheets['Field_Reports']);
+        sheets['Cable'] = addCableInstallationPhaseInfo(sheets['Cable'], sheets['Installation_Phases'], sheets['Field_Reports']);
+        sheets['Cable'] =  addCableRequiredImagesInfo(sheets['Cable'], sheets['Required_Images']);
+        // sheets['Cable'] = 
 
         // create markers
         locationsData = createLocationGeojson(sheets['Location']);
@@ -351,10 +385,18 @@ function extractLatLng(locationSheet) {
 
 
 function addLocationPhotos(locations, photos) {
+    console.log(photos);
     let newLocations = locations.map(location => {
-        let locationPhotos = photos.filter(photo => photo['Photo_Location_Link'] == location['Name']);
+        let ids = location.requiredImages.map(image => image.ReqImagesID);
+        let photo = photos.filter(photo => ids.includes(photo.Req_Img_Type));
+
+        let locationPhotos = photo.filter(photo => photo['Photo_Location_Link'] == location['Name']);
+
+        console.log(locationPhotos);
 
         location.photos = locationPhotos || [];
+        location.images_status = location.photos.length + "/" + location.requiredImages.length;
+
         return location;
     });
 
@@ -384,6 +426,164 @@ function addLocationTestInfo(locations, tests) {
 
     return newLocations;
 }
+
+function addInstallationPhaseInfo(locations, installation, fieldReports) {
+    // 
+    locations = locations.map(location => {
+        if(location.Location_Type == 'OSP') {
+            location.installationPhases = getLocationPhases('OSP', location);
+            return location;
+        }
+
+        if(location.Location_Type == 'Tower') {
+            location.installationPhases = getLocationPhases('TP', location);
+            return location
+        }
+        
+        location.installationPhases = [];
+        return location
+    });
+
+    function getLocationPhases(locationType, location) {
+        let phases = installation.filter(phase => {
+            if(phase.Installation_Phase_Type == locationType && phase.Installation_Requirement == 'Per Location') {
+                return phase;
+            }
+
+            return false;
+        }) || [];
+
+        let phaseIds = phases.map(phase => phase.InstallationPhaseID);
+
+        // console.log(phaseIds);
+
+        reports = fieldReports.filter(report => {
+            if(phaseIds.includes(report.Field_Report_Install_Phase_Link)) {
+                return report;
+            }
+
+            return false;
+        });
+
+        let installationPhases =  reports.filter(report => report.Field_Report_Location_Link == location.Name) || [];
+        return installationPhases;
+    }
+
+
+    // add cable installation info
+    return locations;
+}
+
+function addCableInstallationPhaseInfo(cables, installation, fieldReports) {
+    // 
+    cables = cables.map(cable => {
+        // if(cable.Location_Type == 'OSP') {
+        //     cable.installationPhases = getCablePhases('OSP', cable);
+        //     return cable;
+        // }
+
+        // if(cable.Location_Type == 'Tower') {
+        //     cable.installationPhases = getCablePhases('TP', cable);
+        //     return cable
+        // }
+        
+        cable.installationPhases = getCablePhases('TP', cable) || [];
+        return cable
+    });
+
+    function getCablePhases(cableType, cable) {
+        let phases = installation.filter(phase => {
+            if(phase.Installation_Requirement == 'Per Cable') {
+                return phase;
+            }
+
+            return false;
+        }) || [];
+
+        let phaseIds = phases.map(phase => phase.InstallationPhaseID);
+
+        reports = fieldReports.filter(report => {
+            if(phaseIds.includes(report.Field_Report_Install_Phase_Link)) {
+                return report;
+            }
+
+            return false;
+        });
+
+        let installationPhases =  reports.filter(report => report.Field_Report_Cable_Link == cable.CableID) || [];
+        return installationPhases;
+    }
+
+
+    // add cable installation info
+    return cables;
+}
+
+function addLocationRequiredImagesInfo(locations, requiredImages, photos) {
+    requiredImages = requiredImages.filter(image => image.Requirement == 'Per Location');
+    let imagesId = requiredImages.map(image => image.ReqImagesID);
+
+    locations = locations.map(location => {
+        if(location.Location_Type == 'OSP') {
+            location.requiredImages = requiredImages.filter(image => image.Install_Phase_Type == "OSP");
+
+            return location;
+        }
+
+        if(location.Location_Type == 'Tower') {
+            location.requiredImages = requiredImages.filter(image => image.Install_Phase_Type == "TP");
+            return location
+        }
+
+        location.requiredImages = [];
+        return location;
+    });
+
+    return locations;
+}
+
+function addCableRequiredImagesInfo(cables, requiredImages, photos) {
+    requiredImages = requiredImages.filter(image => image.Requirement == 'Per Cable');
+    let imagesId = requiredImages.map(image => image.ReqImagesID);
+
+    cables = cables.map(cable => {
+        cable.requiredImages = requiredImages.filter(image => image.Install_Phase_Type == "TP") || [];
+        return cable;
+    });
+
+    return cables;
+}
+
+
+// images count
+function addLocationRequiredImages(locations, requiredImages, photos) {
+
+}
+
+function addCableRequiredImages(locations, requiredImages, photos) {
+
+}
+
+// required test
+function addLocationRequiredTest(locations, requiredImages, photos) {
+
+}
+
+function addCableRequiredTest(locations, requiredImages, photos) {
+
+}
+
+function getTestCountPerLocation(location, cable, images) {
+
+}
+
+function getTestCountPerCable(location, cable, images) {
+
+}
+
+
+// DATA MAPPING
+// Installation Phases
 
 // location geojson
 function createLocationGeojson(locations) {
@@ -585,23 +785,47 @@ closeButtons.forEach(button => {
 
 
 // different visual types
+var layers = [
+    {
+        name:'location-required-images_label',
+        visibility:false
+    },
+    {
+        name:'location-required-images',
+        visibility:false
+    },
+    {
+        name:'location-layer',
+        visibility:true
+    }
+]
+
+
 var changeVisuals = document.querySelectorAll(".visual-type");
 changeVisuals.forEach(visualType => {
     visualType.onclick = function(e) {
         let { checked, dataset :{ visual } } = e.target;
-
+        
         if(checked && visual == 'default') {
             resetVisual();
+            toggleLayers(['location-layer']);
             return;
         }
 
-        if(checked && visual == 'progress') {
+        if(checked && visual == 'progress') {``
             visualizeByProgress();
+            toggleLayers(['location-layer']);
             return;
         }
 
         if(checked && visual == 'test') {
-            visualizeByTest();
+            visualizeByTest('test');
+            return;
+        }
+
+        if(checked && visual == 'required-images') {
+            toggleLayers(["location-required-images", "location-required-images_label"]);
+
             return;
         }
     }
@@ -651,6 +875,41 @@ function resetVisual() {
     map.setPaintProperty('location-layer', 'icon-color', '#333');
 }
 
+function visualizeByRequiredImages() {
+    console.log("Required Images");
+
+    // display the 
+    layers = layers.map(layer => {
+        if(layer.name == ""  ) {
+            layer.visibility = true;
+            return layer;
+        }
+
+        layer.visibility = false;
+        return layer;
+    });
+}
+
+
+function toggleLayers(layerNames) {
+    layers = layers.map(layer => {
+        if(layerNames.includes(layer.name)) {
+            layer.visibility = true;
+            return layer;
+        }
+
+        layer.visibility = false;
+        return layer;
+    });
+
+    layers.forEach(layer => {
+        if(map.getLayer(layer.name)) {
+            let visibility = layer.visibility ? 'visible' :'none';
+
+            map.setLayoutProperty(layer.name, 'visibility', visibility);
+        }
+    });
+}
 
 // chart section
 var chartContainer = document.getElementById('chart-container');
