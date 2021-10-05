@@ -11,6 +11,10 @@ var progressColors = ['#66c2a5','#fc8d62','#8da0cb','#e78ac3'];
 var progressStatus = ['Incomplete','In Progress','Pending','Complete'];
 var spinner = document.getElementById("loading");
 
+// test instance
+var cableTest = new CableTest(cablesData.features);
+var installationVisual;
+
 // access token
 mapboxgl.accessToken = 'pk.eyJ1IjoiZGF1ZGk5NyIsImEiOiJjanJtY3B1bjYwZ3F2NGFvOXZ1a29iMmp6In0.9ZdvuGInodgDk7cv-KlujA';
 
@@ -29,6 +33,9 @@ map.on('load', function() {
 
         map.addImage('pylon', image, {sdf:true});
     });
+
+    // test layer
+    cableTest.init();
 
     // cables
     map.addSource('cables', {
@@ -123,6 +130,8 @@ map.on('load', function() {
         sheets['Location'] = addLocationRequiredImagesInfo(sheets['Location'], sheets['Required_Images']);
         sheets['Location'] = addLocationPhotos(sheets['Location'], sheets['Photo']);
 
+        sheets['Location'] = addCableCountPerLocation(sheets['Location'], sheets['Cable']);
+
         sheets['Location'] = addInstallationPhaseInfo(sheets['Location'], sheets['Installation_Phases'], sheets['Field_Reports']);
         sheets['Cable'] = addCableInstallationPhaseInfo(sheets['Cable'], sheets['Installation_Phases'], sheets['Field_Reports']);
         sheets['Cable'] =  addCableRequiredImagesInfo(sheets['Cable'], sheets['Required_Images']);
@@ -133,13 +142,18 @@ map.on('load', function() {
         map.getSource('locations').setData(locationsData);
         
         // createMarkers(sheets['Location']);
+        installationVisual = new InstallationVisual(locationsData.features);
+        installationVisual.init();
+
         console.log("Updating location markers");
 
         // cables
-        cablesDataset = cableGeojson(sheets['Location'], sheets['Cable']);
+        cablesDataset = cableGeojson(sheets['Location'], sheets['Cable'], sheets['Required_Tests'], sheets['Tests']);
         map.getSource('cables').setData(cablesDataset);
 
-        // 
+        // update the cable with test
+        cableTest.setCables([...cablesDataset.features]);
+        cableTest.updateTestSource();
         console.log("Updating cable layer");
 
         // Initial chart
@@ -427,7 +441,19 @@ function addLocationTestInfo(locations, tests) {
     return newLocations;
 }
 
+function addCableCountPerLocation(locations, cables) {
+    let newLocation = locations.map(location => {
+        let locationCables = cables.filter(cable => cable['Location_A'] == location.Name || cable['Location_B'] == location.Name);
+        location.cable_count = locationCables.length;
+
+        return location;
+    });
+
+    return newLocation;
+}
+
 function addInstallationPhaseInfo(locations, installation, fieldReports) {
+   
     // 
     locations = locations.map(location => {
         if(location.Location_Type == 'OSP') {
@@ -600,17 +626,33 @@ function createLocationGeojson(locations) {
 }
 
 // cable connection
-function cableGeojson(locations, cables) {
+function cableGeojson(locations, cables, requiredTests, tests) {
     let geojson = {"type":"FeatureCollection", "features":[]};
 
     let cableData = JSON.parse(JSON.stringify(cablesData));
-
+    let totalTest = requiredTests.length;
+    
     cableData.features = cableData.features.filter(cable => {
         // let p1 = locations.find(location => location.Name == cable['Location_A']);
         // let p2 = locations.find(location => location.Name == cable['Location_B']);
 
-        let cableProps = cables.find(cbl => cbl['Cable Name'] == cable.properties['Cable Name'])
-        
+        let cableProps = cables.find(cbl => cbl['Cable Name'] == cable.properties['Cable Name']);
+
+        // update the cable with test
+        cableProps.test = tests.filter(test => {
+            // recreate the cable name
+            let cableName = test['Test_Cable_Link'].replace('_', " - ")
+            if(cableName == cable.properties['Cable Name']) {
+                console.log(cableName);
+
+                return test;
+            }
+
+            return false;
+        });
+
+        cableProps.total_test = totalTest;
+
         if(cableProps){
            cable.properties = {...cable.properties, ...cableProps}
            return cable;
@@ -797,6 +839,18 @@ var layers = [
     {
         name:'location-layer',
         visibility:true
+    },
+    // {
+    //     name:'cable-layer',
+    //     visibility:true
+    // },
+    {
+      name:'installation-phases',
+      visibility:false
+    },
+    {
+        name:'cable-test',
+        visibility:false
     }
 ]
 
@@ -820,6 +874,17 @@ changeVisuals.forEach(visualType => {
 
         if(checked && visual == 'test') {
             visualizeByTest('test');
+            resetVisual();
+            
+            toggleLayers(['cable-test', 'location-layer']);
+        
+            // toggleLayers(['cable-test', 'cable-layer', 'location-layer']);
+
+            return;
+        }
+
+        if(checked && visual == 'installation-phases') {
+            toggleLayers(['installation-phases']);
             return;
         }
 
@@ -866,6 +931,7 @@ function visualizeByProgress() {
 
 function visualizeByTest() {
     // locations
+    return;
 }
 
 function resetVisual() {
@@ -903,6 +969,17 @@ function toggleLayers(layerNames) {
     });
 
     layers.forEach(layer => {
+
+        if(layer.name == 'installation-phases') {
+            if(!layer.visibility) {
+                installationVisual.remove();
+            } else {
+                installationVisual.addMarkers();
+            }
+
+            return layer;
+        }
+
         if(map.getLayer(layer.name)) {
             let visibility = layer.visibility ? 'visible' :'none';
 
@@ -1042,5 +1119,6 @@ function updateLegend(colors) {
 
 
 updateLegend(progressColors);
+
 
 
