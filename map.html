@@ -105,7 +105,7 @@
                         <label for="">In Progress</label>
                     </div>
 
-                    <div>
+                    <div class="d-none">
                         <label for="">Progress Filter</label>
                         <select name="progress-filter" id="progress-filter" class="progress-filter">
                             <option value="All" data-progress="All" >All</option>
@@ -195,14 +195,14 @@
 
         <div class="info-window d-none" id="info-window">
             <div class="info-header">
-                <h2>Site A34</h2>
+                <h2 id="info-title">Site A34</h2>
 
-                <div class="close-btn close-sidebar" data-id="info-window">
+                <div class="close-btn close-sidebar" data-id="info-window" id="close-sidebar">
                     <i class="fa fa-times" data-id="info-window"></i>
                 </div>
             </div>
 
-            <div class="info-body">
+            <div class="info-body" id="info-body">
                 <!-- cable/site info -->
                 <div class="general-info">
                     <div class="media">

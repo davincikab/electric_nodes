@@ -6,13 +6,15 @@ var locationsData;
 var cablesDataset;
 
 var locationMarkers = [];
+var infoBody = document.getElementById('info-body');
 var infoWindow = document.getElementById('info-window');
+
 var progressColors = ['#66c2a5','#fc8d62','#8da0cb','#e78ac3'];
 var progressStatus = ['Incomplete','In Progress','Pending','Complete'];
 var spinner = document.getElementById("loading");
 
 // test instance
-var cableTest = new CableTest(cablesData.features);
+var cableTest;
 var installationVisual;
 
 // access token
@@ -28,14 +30,14 @@ var map = new mapboxgl.Map({
 
 map.on('load', function() {
     // load the image
-    map.loadImage('pylon.png', function(error , image) {
+    map.loadImage('wind-turbine.png', function(error , image) {
         if(error) throw error;
 
         map.addImage('pylon', image, {sdf:true});
     });
 
     // test layer
-    cableTest.init();
+    // cableTest.init();
 
     // cables
     map.addSource('cables', {
@@ -49,7 +51,7 @@ map.on('load', function() {
         type:'line',
         paint:{
             'line-color':['get', 'Color'],
-            'line-width':2
+            'line-width':1.5
         },
         layout:{
             visibility:'visible'
@@ -67,12 +69,12 @@ map.on('load', function() {
         source:'locations',
         type:'symbol',
         paint:{
-            'icon-color':'#333',
+            'icon-color':'#444',
         },
         layout:{
             visibility:'visible',
             'icon-image':'pylon',
-            'icon-size':0.5
+            'icon-size':0.3
         }
     });
 
@@ -81,7 +83,7 @@ map.on('load', function() {
         source:'locations',
         type:"circle",
         paint:{
-            'circle-radius':15,
+            'circle-radius':18,
             'circle-color':'white'
         },
         layout:{
@@ -99,7 +101,7 @@ map.on('load', function() {
         layout: {
             'text-field': ["get", "images_status"],
             'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold'],
-            'text-size': 12,
+            'text-size': 10,
             'visibility':'none'
         }
     });
@@ -127,12 +129,14 @@ map.on('load', function() {
         // update location information
         sheets['Location'] = extractLatLng(sheets['Location']);
         sheets['Location'] = addLocationTestInfo(sheets['Location'],  sheets['Tests']);
+
+        sheets['Location'] = addCableCountPerLocation(sheets['Location'], sheets['Cable']);
+        sheets['Location'] = addInstallationPhaseInfo(sheets['Location'], sheets['Installation_Phases'], sheets['Field_Reports']);
+
+        // images
         sheets['Location'] = addLocationRequiredImagesInfo(sheets['Location'], sheets['Required_Images']);
         sheets['Location'] = addLocationPhotos(sheets['Location'], sheets['Photo']);
 
-        sheets['Location'] = addCableCountPerLocation(sheets['Location'], sheets['Cable']);
-
-        sheets['Location'] = addInstallationPhaseInfo(sheets['Location'], sheets['Installation_Phases'], sheets['Field_Reports']);
         sheets['Cable'] = addCableInstallationPhaseInfo(sheets['Cable'], sheets['Installation_Phases'], sheets['Field_Reports']);
         sheets['Cable'] =  addCableRequiredImagesInfo(sheets['Cable'], sheets['Required_Images']);
         // sheets['Cable'] = 
@@ -152,8 +156,11 @@ map.on('load', function() {
         map.getSource('cables').setData(cablesDataset);
 
         // update the cable with test
-        cableTest.setCables([...cablesDataset.features]);
-        cableTest.updateTestSource();
+        cableTest = new CableTest(cablesDataset.features);
+        cableTest.init();
+
+        // cableTest.setCables([...cablesDataset.features]);
+        // cableTest.updateTestSource();
         console.log("Updating cable layer");
 
         // Initial chart
@@ -275,7 +282,7 @@ function createPopup(location) {
 function populateSidePanelInfo(feature, layer="Site") {
     console.log(feature);
 
-    infoWindow.innerHTML = "";
+   infoBody.innerHTML = "";
 
     let media = JSON.parse(feature.properties.photos).map((photo, index) => {
         return `<figure>
@@ -286,23 +293,22 @@ function populateSidePanelInfo(feature, layer="Site") {
 
     let featureInfo = layer == 'Site' ? getLocationInfo(feature) :getCableInfo(feature);
 
-    let html = `<div class="info-header">
-        <h2>${layer} ${feature.properties['Name']}</h2>
-    </div>
-    <div class="info-body">
-        <div class="general-info">
+    let infoTitle = document.getElementById('info-title');
+    infoTitle.innerHTML = `${layer} ${feature.properties['Name']}`;
+
+    let html = `<div class="general-info">
             <div class="media">
                 ${media.join("")}
             </div>
         </div>
         ${featureInfo}
-    </div>`;
+    `;
 
     console.log(feature);
     console.log(layer);
 
-    infoWindow.innerHTML = html;
-    infoWindow.classList.remove('d-none');
+   infoBody.innerHTML = html;
+   infoWindow.classList.remove('d-none');
 }
 
 function getCableInfo(feature) {
@@ -332,6 +338,11 @@ function getCableInfo(feature) {
 }
 
 function getLocationInfo(feature) {
+    let allPhases = feature.properties.cable_count *  5 + 3;
+
+    let completeValue = feature.properties.installationPhases.length;
+    let inCompleteValue = allPhases - completeValue;
+
     return `<div class="info-item">
     Progress <b>${feature.properties['Location_Progress_Status']}</b>
     </div>
@@ -349,12 +360,29 @@ function getLocationInfo(feature) {
     </div>
 
     <div class="info-item">
-        Location Count On Strings <b>${feature.properties['Location_Count_On_String']}</b>
+        Connected Cables <b>${feature.properties['cable_count']}</b>
     </div>
 
-    <div class="tests-section">
+    <div class="info-section">
+        <!--  -->
+        <h3>Installation Phases</h3>
+        <div class="test-item">
+            <div>${completeValue} Completed Phases</div>
+            <div>${inCompleteValue} Completed Phases</div>
+        </div>
+    </div>
+
+    <div class="info-section">
         <!--  -->
         <h3>Site Test</h3>
+        <div class="test-item">
+
+        </div>
+    </div>
+
+    <div class="info-section">
+        <!--  -->
+        <h3>Required Images</h3>
         <div class="test-item">
 
         </div>
@@ -409,7 +437,7 @@ function addLocationPhotos(locations, photos) {
         console.log(locationPhotos);
 
         location.photos = locationPhotos || [];
-        location.images_status = location.photos.length + "/" + location.requiredImages.length;
+        location.images_status = location.photos.length + "/" + location.requiredImagesTotals;
 
         return location;
     });
@@ -546,19 +574,25 @@ function addCableInstallationPhaseInfo(cables, installation, fieldReports) {
 }
 
 function addLocationRequiredImagesInfo(locations, requiredImages, photos) {
-    requiredImages = requiredImages.filter(image => image.Requirement == 'Per Location');
-    let imagesId = requiredImages.map(image => image.ReqImagesID);
+    cableImages = requiredImages.filter(image => image.Requirement == 'Per Cable');
+    // let imagesId = requiredImages.map(image => image.ReqImagesID);
 
+    // 
     locations = locations.map(location => {
         if(location.Location_Type == 'OSP') {
-            location.requiredImages = requiredImages.filter(image => image.Install_Phase_Type == "OSP");
+            locationImages = requiredImages.filter(image => image.Install_Phase_Type == "OSP");
+            location.requiredImagesTotals = location.cable_count * cableImages.length + locationImages.length;
 
+            location.requiredImages = [...locationImages, ...cableImages];
             return location;
         }
 
         if(location.Location_Type == 'Tower') {
-            location.requiredImages = requiredImages.filter(image => image.Install_Phase_Type == "TP");
-            return location
+            locationImages = requiredImages.filter(image => image.Install_Phase_Type == "TP");
+            location.requiredImagesTotals = location.cable_count * cableImages.length + locationImages.length;
+
+            location.requiredImages = [...locationImages, ...cableImages];
+            return location;
         }
 
         location.requiredImages = [];
@@ -851,6 +885,10 @@ var layers = [
     {
         name:'cable-test',
         visibility:false
+    },
+    {
+        name:'test-count-layer',
+        visibility:false
     }
 ]
 
@@ -875,10 +913,8 @@ changeVisuals.forEach(visualType => {
         if(checked && visual == 'test') {
             visualizeByTest('test');
             resetVisual();
-            
-            toggleLayers(['cable-test', 'location-layer']);
-        
-            // toggleLayers(['cable-test', 'cable-layer', 'location-layer']);
+
+            toggleLayers(['cable-test', 'location-layer', 'test-count-layer']);
 
             return;
         }
