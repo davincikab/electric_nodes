@@ -185,7 +185,7 @@ h3 {
     width: 200px;
     position: absolute;
     bottom: 0px;
-    height: 70vh;
+    height: auto;
     overflow-y: auto;
     left: 0%;
     z-index: 3;
