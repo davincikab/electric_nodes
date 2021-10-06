@@ -286,7 +286,7 @@ function populateSidePanelInfo(feature, layer="Site") {
 
     let media = JSON.parse(feature.properties.photos).map((photo, index) => {
         return `<figure>
-            <img src="https://picsum.photos/id/${231 + index}/200/200" alt="Trulli" style="width:100%; height:200px" >
+            <img src="https://picsum.photos/id/${231 + index}/200/150" alt="Trulli" style="width:100%; height:150px" >
             <figcaption>${photo['Photo_Label']}</figcaption>
         </figure>`
     });
@@ -298,7 +298,7 @@ function populateSidePanelInfo(feature, layer="Site") {
 
     let html = `<div class="general-info">
             <div class="media">
-                ${media.join("")}
+                ${media[0]}
             </div>
         </div>
         ${featureInfo}
@@ -312,26 +312,33 @@ function populateSidePanelInfo(feature, layer="Site") {
 }
 
 function getCableInfo(feature) {
-    return `<div class="info-item">
-            Progress <b>${feature.properties['Cable_Progress_Status']}</b>
+    let completeValue = JSON.parse(feature.properties.test).length;
+    let inCompleteValue = feature.properties.total_test - completeValue;
+
+    return `<div class="info-items">
+            <div class="info-item">
+                Progress <b>${feature.properties['Cable_Progress_Status']}</b>
+            </div>
+
+            <div class="info-item">
+                Site <b>${feature.properties['Cable_Site_Link']}</b>
+            </div>
+
+            <div class="info-item">
+                Field <b>${feature.properties['Cable_Field_Link']}</b>
+            </div>
+
+            <div class="info-item">
+                Cable String Link<b>${feature.properties['Cable_String_Link']}</b>
+            </div>
         </div>
 
-        <div class="info-item">
-            Site <b>${feature.properties['Cable_Site_Link']}</b>
-        </div>
-
-        <div class="info-item">
-            Field <b>${feature.properties['Cable_Field_Link']}</b>
-        </div>
-
-        <div class="info-item">
-            Cable String Link<b>${feature.properties['Cable_String_Link']}</b>
-        </div>
-        <div class="tests-section">
-                    <!--  -->
+        <div class="info-section">
+            <!--  -->
             <h3>Cable Test</h3>
             <div class="test-item">
-
+                <div>${completeValue} Complete Test</div>
+                <div>${inCompleteValue} Incomplete Test</div>
             </div>
         </div>
     `;
@@ -339,44 +346,40 @@ function getCableInfo(feature) {
 
 function getLocationInfo(feature) {
     let allPhases = feature.properties.cable_count *  5 + 3;
+    console.log(allPhases);
 
-    let completeValue = feature.properties.installationPhases.length;
+
+    let completeValue = JSON.parse(feature.properties.installationPhases).length;
     let inCompleteValue = allPhases - completeValue;
 
-    return `<div class="info-item">
-    Progress <b>${feature.properties['Location_Progress_Status']}</b>
-    </div>
+    return `<div class="info-items">
+        <div class="info-item">
+            Progress <b>${feature.properties['Location_Progress_Status']}</b>
+        </div>
 
-    <div class="info-item">
-        Site <b>${feature.properties['Site']}</b>
-    </div>
+        <div class="info-item">
+            Site <b>${feature.properties['Site']}</b>
+        </div>
 
-    <div class="info-item">
-        Field <b>${feature.properties['Field']}</b>
-    </div>
+        <div class="info-item">
+            Field <b>${feature.properties['Field']}</b>
+        </div>
 
-    <div class="info-item">
-        Primary Sub Station <b>${feature.properties['Primary_Sub_Station']}</b>
-    </div>
+        <div class="info-item">
+            Primary Sub Station <b>${feature.properties['Primary_Sub_Station']}</b>
+        </div>
 
-    <div class="info-item">
-        Connected Cables <b>${feature.properties['cable_count']}</b>
+        <div class="info-item">
+            Connected Cables <b>${feature.properties['cable_count']}</b>
+        </div>
     </div>
 
     <div class="info-section">
         <!--  -->
         <h3>Installation Phases</h3>
         <div class="test-item">
-            <div>${completeValue} Completed Phases</div>
-            <div>${inCompleteValue} Completed Phases</div>
-        </div>
-    </div>
-
-    <div class="info-section">
-        <!--  -->
-        <h3>Site Test</h3>
-        <div class="test-item">
-
+            <div>${completeValue} Complete Phases</div>
+            <div>${inCompleteValue} Incomplete Phases</div>
         </div>
     </div>
 
@@ -384,7 +387,8 @@ function getLocationInfo(feature) {
         <!--  -->
         <h3>Required Images</h3>
         <div class="test-item">
-
+            <div>${JSON.parse(feature.properties.photos).length} Captured</div>
+            <div>${ feature.properties.requiredImagesTotals - JSON.parse(feature.properties.photos).length} Images Remaining</div>
         </div>
     </div>
     `
