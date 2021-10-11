@@ -48,7 +48,7 @@ var InstallationVisual = function(locations) {
         this.markers = this.locations.map(location => {
             let allPhases = location.properties.cable_count *  5 + 3;
 
-            let completeValue = location.properties.installationPhases.length;
+            let completeValue = location.properties.installationPhases.completePhases.length;
             let inCompleteValue = allPhases - completeValue;
             
             let data = [

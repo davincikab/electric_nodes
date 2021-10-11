@@ -68,7 +68,7 @@ var CableTest = function(cables) {
                 type:'line',
                 paint:{
                     'line-color':['get', 'Color'],
-                    'line-width':5
+                    'line-width':5,
                 },
                 layout:{
                     visibility:'none'
@@ -86,15 +86,19 @@ var CableTest = function(cables) {
                 source:'test-count',
                 type:'symbol',
                 paint:{
-                    'text-color':'black'
+                    'text-color':'black',
+                    'text-halo-color':'#ddd',
+                    'text-halo-width':15,
+                    'text-halo-blur':5
                 },
                 layout: {
                     'text-field': ["get", "test_status"],
                     'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold'],
                     'text-size': 9,
+                    'text-padding':5,
                     'visibility':'none'
                 }
-            })
+            });
 
             this.updateCableWithTest();
 
@@ -106,6 +110,12 @@ var CableTest = function(cables) {
 
             let locationTest = turf.featureCollection(this.getLocationFeatures())
             map.getSource('test-count').setData(locationTest);
+
+            // move the test layer below
+            setTimeout(function() {
+                map.moveLayer('cable-test', 'cable-layer');
+            }, 3000);
+            
         }
     }
 
@@ -124,3 +134,5 @@ var CableTest = function(cables) {
     }
 
 }
+
+// Incomplete and complete test (list)

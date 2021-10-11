@@ -296,10 +296,12 @@ function populateSidePanelInfo(feature, layer="Site") {
     let infoTitle = document.getElementById('info-title');
     infoTitle.innerHTML = `${layer} ${feature.properties['Name']}`;
 
+    // <div class="media">
+    //     ${media[0]}
+    // </div>
+
     let html = `<div class="general-info">
-            <div class="media">
-                ${media[0]}
-            </div>
+            
         </div>
         ${featureInfo}
     `;
@@ -309,13 +311,40 @@ function populateSidePanelInfo(feature, layer="Site") {
 
    infoBody.innerHTML = html;
    infoWindow.classList.remove('d-none');
+
+    //toggle
+    toggleCollapse();
 }
 
 function getCableInfo(feature) {
+    let requiredTests = JSON.parse(feature.properties.requiredTest);
+    let completeTests = JSON.parse(feature.properties.test);
+
     let completeValue = JSON.parse(feature.properties.test).length;
     let inCompleteValue = feature.properties.total_test - completeValue;
 
-    return `<div class="info-items">
+    let remainingTest = requiredTests.filter(test => {
+        let activeTest = completeTests.find(cTest => cTest['Req_Test_Link'] == test['ReqTestID']);
+
+        if(activeTest) {
+            return false;
+        }
+
+        return test;
+    });
+
+    // test
+    let completeTestsList = completeTests.map(test => {
+        return `<li>${test['Test_Group']}</li>`;
+    });
+
+    let remainingTestsList = remainingTest.map(rTest => {
+        return `<li>${rTest['Abbreviated Name']}</li>`;
+    });
+
+    return `<div class="info-section">
+        <h3>General Information</h3>
+        <div class="info-items">
             <div class="info-item">
                 Progress <b>${feature.properties['Cable_Progress_Status']}</b>
             </div>
@@ -332,13 +361,25 @@ function getCableInfo(feature) {
                 Cable String Link<b>${feature.properties['Cable_String_Link']}</b>
             </div>
         </div>
+        </div>
 
         <div class="info-section">
             <!--  -->
             <h3>Cable Test</h3>
-            <div class="test-item">
-                <div>${completeValue} Complete Test</div>
-                <div>${inCompleteValue} Incomplete Test</div>
+            <div>
+                <div>
+                    <button type="button" class="collapsible"> ${completeValue} Complete Test</button>
+                    <div class="content">
+                        ${completeTestsList.join("")}
+                    </div>
+                </div>
+
+                <div>
+                    <button type="button" class="collapsible"> ${inCompleteValue} InComplete Test</button>
+                    <div class="content">
+                        ${remainingTestsList.join("")}
+                    </div>
+                </div>
             </div>
         </div>
     `;
@@ -348,29 +389,93 @@ function getLocationInfo(feature) {
     let allPhases = feature.properties.cable_count *  5 + 3;
     console.log(allPhases);
 
+    // locations phases
+    let locationPhases = JSON.parse(feature.properties.installationPhases);
 
-    let completeValue = JSON.parse(feature.properties.installationPhases).length;
+    // cable phases
+    let cablePhases = JSON.parse(feature.properties.cables);
+
+    // let phases = JSON.parse();
+    let cablecompletePhases = cablePhases.reduce((a,b) => {
+        a = [...a, ...b.installation.completePhases]
+        return a;
+    }, []);
+
+    let completeValue = [...locationPhases.completePhases, ...cablecompletePhases].length;
     let inCompleteValue = allPhases - completeValue;
 
-    return `<div class="info-items">
-        <div class="info-item">
-            Progress <b>${feature.properties['Location_Progress_Status']}</b>
-        </div>
+    // complete phases
+    let listLocPhases  = `<div>${feature.properties.Name} <br>
+        ${locationPhases.completePhases.map(phase => `<li>${phase['Field_Report_Install_Phase_Link']}</li>` ).join("")}
+    </div>`;
 
-        <div class="info-item">
-            Site <b>${feature.properties['Site']}</b>
-        </div>
+    let listCablePhases = cablePhases.map(cable => {
+        return `<div>${cable.name} <br>
+            ${cable.installation.completePhases.map(phase => `<li>${phase['Field_Report_Install_Phase_Link']}</li>` ).join("")}
+        </div>`;
+    }).join("");
 
-        <div class="info-item">
-            Field <b>${feature.properties['Field']}</b>
-        </div>
+    // incomplete phases
+    let locIncompletePhases = locationPhases.required.filter(phase => {
+        let phaseEntry = locationPhases.completePhases.find(ph => ph['Field_Report_Install_Phase_Link'] == phase['Field_Report_Install_Phase_Link'])
+        
+        if(phaseEntry) {
+            return false
+        }
 
-        <div class="info-item">
-            Primary Sub Station <b>${feature.properties['Primary_Sub_Station']}</b>
-        </div>
+        return phase;
+    });
 
-        <div class="info-item">
-            Connected Cables <b>${feature.properties['cable_count']}</b>
+    let cablesIncompletePhases = cablePhases.map(cable => {
+        cable.installation.incompletePhases = cable.installation.required.filter(phase => {
+            let phaseEntry = cable.installation.completePhases.find(ph => ph['Field_Report_Install_Phase_Link'] == phase['Field_Report_Install_Phase_Link'])
+            
+            if(phaseEntry) {
+                return false
+            }
+    
+            return phase;
+        });
+
+        return cable;
+    });
+
+    // incomplete list
+    let incompleteLocList = `<div>${feature.properties.Name} <br>
+        ${locIncompletePhases.map(phase => `<li>${phase['Installation_Phase_Name']}</li>` ).join("")}
+    </div>`;
+
+    let incompleteCableList = cablesIncompletePhases.map(cable => {
+        return `<div>${cable.name} <br>
+            ${cable.installation.incompletePhases.map(phase => `<li>${phase['Installation_Phase_Name']}</li>` ).join("")}
+        </div>`;
+    }).join("");
+
+    // Field_Report_Cable_Link
+    // let incompletePhases = 
+
+    return `<div class="info-section">
+        <h3>General Information</h3>
+        <div class="info-items">
+            <div class="info-item">
+                Progress <b>${feature.properties['Location_Progress_Status']}</b>
+            </div>
+
+            <div class="info-item">
+                Site <b>${feature.properties['Site']}</b>
+            </div>
+
+            <div class="info-item">
+                Field <b>${feature.properties['Field']}</b>
+            </div>
+
+            <div class="info-item">
+                Primary Sub Station <b>${feature.properties['Primary_Sub_Station']}</b>
+            </div>
+
+            <div class="info-item">
+                Connected Cables <b>${feature.properties['cable_count']}</b>
+            </div>
         </div>
     </div>
 
@@ -378,8 +483,21 @@ function getLocationInfo(feature) {
         <!--  -->
         <h3>Installation Phases</h3>
         <div class="test-item">
-            <div>${completeValue} Complete Phases</div>
-            <div>${inCompleteValue} Incomplete Phases</div>
+            <div>
+                <button type="button" class="collapsible"> ${completeValue} Complete Phases</button>
+                <div class="content">
+                    ${listLocPhases}
+                    ${listCablePhases}
+                </div>
+            </div>
+
+            <div>
+                <button type="button" class="collapsible"> ${inCompleteValue} Incomplete Phases</button>
+                <div class="content">
+                   ${incompleteLocList}
+                   ${incompleteCableList}
+                </div>
+            </div>
         </div>
     </div>
 
@@ -392,6 +510,23 @@ function getLocationInfo(feature) {
         </div>
     </div>
     `
+}
+
+function toggleCollapse() {
+    var coll = document.getElementsByClassName("collapsible");
+    var i;
+
+    for (i = 0; i < coll.length; i++) {
+    coll[i].addEventListener("click", function() {
+        this.classList.toggle("active");
+        var content = this.nextElementSibling;
+        if (content.style.maxHeight){
+        content.style.maxHeight = null;
+        } else {
+        content.style.maxHeight = content.scrollHeight + "px";
+        } 
+    });
+    }
 }
 
 // Module to process to enrich the tables
@@ -476,6 +611,12 @@ function addLocationTestInfo(locations, tests) {
 function addCableCountPerLocation(locations, cables) {
     let newLocation = locations.map(location => {
         let locationCables = cables.filter(cable => cable['Location_A'] == location.Name || cable['Location_B'] == location.Name);
+
+        let cableInfo = locationCables.map(cable => {
+            return { name:cable['Cable Name'], cableID:cable['CableID'] }
+        });
+
+        location.cables = [...cableInfo];
         location.cable_count = locationCables.length;
 
         return location;
@@ -490,11 +631,25 @@ function addInstallationPhaseInfo(locations, installation, fieldReports) {
     locations = locations.map(location => {
         if(location.Location_Type == 'OSP') {
             location.installationPhases = getLocationPhases('OSP', location);
+
+            // installation phases per cable
+            location.cables = location.cables.map(cable => {
+                cable.installation = getCablePhases('TP', cable, location);
+                return cable;
+            });
+
             return location;
         }
 
         if(location.Location_Type == 'Tower') {
             location.installationPhases = getLocationPhases('TP', location);
+
+            // installation phases per cable
+            location.cables = location.cables.map(cable => {
+                cable.installation = getCablePhases('TP', cable, location);
+                return cable;
+            });
+
             return location
         }
         
@@ -515,7 +670,7 @@ function addInstallationPhaseInfo(locations, installation, fieldReports) {
 
         // console.log(phaseIds);
 
-        reports = fieldReports.filter(report => {
+        let reports = fieldReports.filter(report => {
             if(phaseIds.includes(report.Field_Report_Install_Phase_Link)) {
                 return report;
             }
@@ -524,7 +679,39 @@ function addInstallationPhaseInfo(locations, installation, fieldReports) {
         });
 
         let installationPhases =  reports.filter(report => report.Field_Report_Location_Link == location.Name) || [];
-        return installationPhases;
+        return {required:[...phases], completePhases:[...installationPhases]};
+    }
+
+    function getCablePhases(cableType, cable, location) {
+        let phases = installation.filter(phase => {
+            if(phase.Installation_Phase_Type == cableType && phase.Installation_Requirement == 'Per Cable' ) {
+                return phase;
+            }
+
+            return false;
+        }) || [];
+
+        let phaseIds = phases.map(phase => phase.InstallationPhaseID);
+
+        // let reports = fieldReports.filter(report => {
+        //     if(phaseIds.includes(report.Field_Report_Install_Phase_Link)) {
+        //         return report;
+        //     }
+
+        //     return false;
+        // });
+
+        // console.log(reports);
+
+        let installationPhases =  fieldReports.filter(report => {
+            if(report.Field_Report_Cable_Link == cable.cableID  && report.Field_Report_Location_Link == location.Name) {
+                return report;
+            } 
+
+            return false;
+        }) || [];
+
+        return { required: [...phases], completePhases:[...installationPhases]};
     }
 
 
@@ -578,13 +765,15 @@ function addCableInstallationPhaseInfo(cables, installation, fieldReports) {
 }
 
 function addLocationRequiredImagesInfo(locations, requiredImages, photos) {
-    cableImages = requiredImages.filter(image => image.Requirement == 'Per Cable');
+    cableImages = requiredImages.filter(rm => rm['Requirement'] == 'Per Cable' && rm['Install_Phase_Type'] == 'TP' && rm['Temp1'] == 'map');
     // let imagesId = requiredImages.map(image => image.ReqImagesID);
+
+    // console.log(cableImages.length);
 
     // 
     locations = locations.map(location => {
         if(location.Location_Type == 'OSP') {
-            locationImages = requiredImages.filter(image => image.Install_Phase_Type == "OSP");
+            locationImages = requiredImages.filter(image => image.Requirement == 'Per Location' && image.Install_Phase_Type == "OSP" && image['Temp1'] == 'map');
             location.requiredImagesTotals = location.cable_count * cableImages.length + locationImages.length;
 
             location.requiredImages = [...locationImages, ...cableImages];
@@ -592,9 +781,12 @@ function addLocationRequiredImagesInfo(locations, requiredImages, photos) {
         }
 
         if(location.Location_Type == 'Tower') {
-            locationImages = requiredImages.filter(image => image.Install_Phase_Type == "TP");
+            locationImages = requiredImages.filter(image => image.Requirement == 'Per Location' && image.Install_Phase_Type == "TP" && image['Temp1'] == 'map');
+            console.log(locationImages.length);
+
             location.requiredImagesTotals = location.cable_count * cableImages.length + locationImages.length;
 
+            // 35 images
             location.requiredImages = [...locationImages, ...cableImages];
             return location;
         }
@@ -689,6 +881,7 @@ function cableGeojson(locations, cables, requiredTests, tests) {
             return false;
         });
 
+        cableProps.requiredTest = [...requiredTests];
         cableProps.total_test = totalTest;
 
         if(cableProps){

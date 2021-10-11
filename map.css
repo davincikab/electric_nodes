@@ -16,7 +16,7 @@ body {
     margin: 0;
     padding: 0;
     font-size: 16px;
-    font-family: 'Franklin Gothic Medium', 'Arial Narrow', Arial, sans-serif;
+    font-family: open sans,sans-serif;
 }
 
 .map-container{
@@ -274,7 +274,7 @@ h3 {
 }
 
 .info-window {
-    width: 300px;
+    width: 350px;
     position: absolute;
     top: 0px;
     height: 100vh;
@@ -418,6 +418,51 @@ figure figcaption {
 
 .mapboxgl-marker {
     cursor:  pointer;;
+}
+
+/* collapse section */ 
+.collapsible {
+    background-color: var(--secondary);
+    color: white;
+    cursor: pointer;
+    padding: 8px;
+    width: 100%;
+    border: none;
+    text-align: left;
+    outline: none;
+    font-size: 15px;
+    margin: 0.25rem 0;
+}
+  
+.active, .collapsible:hover {
+    background-color: var(--secondary);
+}
+
+.collapsible:after {
+    content: '\02795'; /* Unicode character for "plus" sign (+) */
+    font-size: 13px;
+    color: white;
+    float: right;
+    margin-left: 5px;
+}
+  
+.active:after {
+    content: "\2796"; /* Unicode character for "minus" sign (-) */
+}
+.content {
+    padding: 0 10px;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.2s ease-out;
+}
+
+.content > div {
+    margin:0 0 0.5em;
+}
+
+.content li {
+    line-height: 1.4;
+    font-size: 13px;
 }
 
 /* page loader */
